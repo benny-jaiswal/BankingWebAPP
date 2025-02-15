@@ -1,0 +1,34 @@
+﻿@page "/login"
+@using BankingWebApp.Services
+@inject NavigationManager Navigation
+@inject BankingWebApp.Services.IAuthService AuthService
+
+
+<h3>Login</h3>
+<div class="card p-4 shadow-sm">
+    <div class="form-group">
+        <label>Username</label>
+        <input @bind="Username" class="form-control" />
+    </div>
+    <div class="form-group mt-2">
+        <label>Password</label>
+        <input type="password" @bind="Password" class="form-control" />
+    </div>
+    <button class="btn btn-primary mt-3" @onclick="LoggingIn">Login</button>
+    <p class="text-danger">@ErrorMessage</p>
+</div>
+
+@code {
+    private string Username { get; set; } = "";
+    private string Password { get; set; } = "";
+    private string ErrorMessage = "";
+
+    private async Task LoggingIn()
+    {
+        var result = await AuthService.Login(Username, Password);
+        if (result)
+            Navigation.NavigateTo("/dashboard");
+        else
+            ErrorMessage = "Invalid credentials.";
+    }
+}

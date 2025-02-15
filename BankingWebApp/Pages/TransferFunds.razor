@@ -1,0 +1,95 @@
+﻿<h3>TransferFunds</h3>
+
+@page "/transfer"
+@using BankingWebApp.Services
+@using System.ComponentModel.DataAnnotations;
+
+@inject IBankingService BankingService
+@inject NavigationManager Navigation
+
+<h3>Transfer Funds</h3>
+
+<EditForm Model="@transferModel" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="mb-3">
+        <label class="form-label">From Account</label>
+        <InputText class="form-control" @bind-Value="transferModel.FromAccount" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">To Account</label>
+        <InputText class="form-control" @bind-Value="transferModel.ToAccount" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Amount</label>
+        <InputNumber class="form-control" @bind-Value="transferModel.Amount" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description (Optional)</label>
+        <InputTextArea class="form-control" @bind-Value="transferModel.Description" />
+    </div>
+    <button type="submit" class="btn btn-primary">Transfer</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-2">@errorMessage</div>
+}
+@if (isSuccess)
+{
+    <div class="alert alert-success mt-2">Transfer successful!</div>
+}
+
+@code {
+    private TransferFundsModel transferModel = new();
+    private string errorMessage;
+    private bool isSuccess;
+
+    private async Task HandleValidSubmit()
+    {
+        // Reset messages
+        errorMessage = string.Empty;
+        isSuccess = false;
+
+        // Additional client-side validations:
+        if (transferModel.FromAccount == transferModel.ToAccount)
+        {
+            errorMessage = "The source and destination accounts must be different.";
+            return;
+        }
+        if (transferModel.Amount <= 0)
+        {
+            errorMessage = "Amount must be greater than zero.";
+            return;
+        }
+
+        // Call the service to perform the transfer.
+        bool result = await BankingService.TransferFundsAsync(transferModel.FromAccount, transferModel.ToAccount, transferModel.Amount);
+        if (result)
+        {
+            isSuccess = true;
+            // Optionally, clear the form or navigate to another page.
+            transferModel = new TransferFundsModel();
+        }
+        else
+        {
+            errorMessage = "Transfer failed. Please try again.";
+        }
+    }
+
+    public class TransferFundsModel
+    {
+        [Required(ErrorMessage = "From Account is required")]
+        public string FromAccount { get; set; }
+
+        [Required(ErrorMessage = "To Account is required")]
+        public string ToAccount { get; set; }
+
+        [Required(ErrorMessage = "Amount is required")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
+        public decimal Amount { get; set; }
+
+        public string Description { get; set; }
+    }
+}
+

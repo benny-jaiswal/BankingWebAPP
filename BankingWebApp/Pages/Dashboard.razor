@@ -1,0 +1,151 @@
+﻿@page "/dashboard" 
+@using BankingWebApp.Services
+@using BankingWebApp.Data
+@using ChartJs.Blazor.Util
+@using ChartJs.Blazor.BarChart
+@using ChartJs.Blazor.Common.Axes
+@using ChartJs.Blazor.Common.Enums
+@using ChartJs.Blazor.Common
+@using System.Drawing
+
+@inject IBankingService BankingService
+@attribute [Authorize]
+
+<h3>Banking Dashboard</h3>
+
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card p-3 shadow">
+                <h4>Account Balance</h4>
+                <p class="fw-bold text-primary">$@FinancialSummary.NetBalance</p>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-3 shadow">
+                <h4>Financial Summary</h4>
+                <ul class="list-group">
+                    <li class="list-group-item">Total Deposits: $@FinancialSummary.TotalDeposits</li>
+                    <li class="list-group-item">Total Withdrawals: $@FinancialSummary.TotalWithdrawals</li>
+                    <li class="list-group-item">Net Balance: $@FinancialSummary.NetBalance</li>
+                </ul>
+                <div style="height:300px; width:100%;">
+                    <BarChart Config="@chartConfig" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card p-3 shadow">
+                <h4>Recent Transactions</h4>
+                <ul class="list-group">
+                    @foreach (var txn in Transactions)
+                    {
+                        <li class="list-group-item">
+                            <strong>@txn.TransactionType:</strong> $@txn.Amount on @txn.TransactionDate.ToShortDateString()
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private FinancialSummaryDto FinancialSummary = new();
+    private List<TransactionDto> Transactions = new();
+    private bool isLoading = true;
+    private BarConfig chartConfig;
+    private int accountId = 1; // Replace with dynamic user account ID if needed
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadDashboardDataAsync();
+            StateHasChanged(); // Force a re-render once data is loaded
+        }
+    }
+    private async Task LoadDashboardDataAsync()
+    {
+        try
+        {
+            // Now these calls occur after the JS runtime is available,
+            // so ProtectedSessionStorage (and your Jwt handler) work properly.
+            FinancialSummary = await BankingService.GetFinancialSummaryAsync(accountId);
+            Transactions = await BankingService.GetRecentTransactionsAsync(accountId);
+            SetupChart();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SetupChart()
+    {
+        // Create a new bar chart configuration.
+        // The boolean parameter indicates whether the chart should be rendered horizontally.
+        // Set to false for a vertical bar chart.
+        chartConfig = new BarConfig(horizontal: false)
+            {
+                Options = new BarOptions
+                {
+                    Responsive = true,
+                    // Set legend options directly if your version supports it
+                    Legend = new Legend
+                    {
+                        Position = Position.Right,
+                        Display = true
+                    },
+                    Title = new OptionsTitle
+                    {
+                        Display = true,
+                        Text = "Financial Summary"
+                    }
+                }
+            };
+
+        // Create the dataset for deposits.
+        // Note: The BarDataset<T> constructor accepts an existing list of data points.
+        // Since the Data property is read-only, we pass the data in the constructor.
+        IDataset<int> deposits = new BarDataset<int>(new List<int> { (int)FinancialSummary.TotalDeposits }, horizontal: false)
+            {
+                Label = "Deposits",
+                BackgroundColor =  ColorUtil.FromDrawingColor(System.Drawing.Color.FromArgb(128, System.Drawing.Color.Green)),
+                BorderColor =  ColorUtil.FromDrawingColor(System.Drawing.Color.Green) ,
+                BorderWidth = 1
+            };
+
+        // Create the dataset for withdrawals.
+        IDataset<int> withdrawals = new BarDataset<int>(new List<int> { (int)FinancialSummary.TotalWithdrawals }, horizontal: false)
+            {
+                Label = "Withdrawals",
+                BackgroundColor = ColorUtil.FromDrawingColor(System.Drawing.Color.FromArgb(128, System.Drawing.Color.Red)) ,
+                BorderColor = ColorUtil.FromDrawingColor(System.Drawing.Color.Red) ,
+                BorderWidth = 1
+            };
+
+        // Add a label for the data point. (Since we only have one data point per dataset, one label suffices.)
+        chartConfig.Data.Labels.Add("Financial Summary");
+
+        // Add both datasets to the chart configuration.
+        chartConfig.Data.Datasets.Add(deposits);
+        chartConfig.Data.Datasets.Add(withdrawals);
+    }
+}

@@ -1,0 +1,42 @@
+﻿@inject BankingWebApp.Services.IAuthService AuthService
+@inject NavigationManager Navigation
+
+@if (!hasRendered)
+{
+    <div>Loading...</div>
+}
+else if (isAuthenticated)
+{
+    <NavLink class="nav-link" href="/dashboard">
+        <span class="oi oi-arrow-right" aria-hidden="true"></span> Dashboard
+    </NavLink>
+    <NavLink class="nav-link" href="/transfer">
+        <span class="oi oi-arrow-right" aria-hidden="true"></span> Transfer Funds
+    </NavLink>
+
+    <button class="btn btn-danger" @onclick="Logout">Logout</button>
+}
+
+
+@code {
+    private bool isAuthenticated;
+    private bool hasRendered = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(2000);
+            isAuthenticated = await AuthService.IsAuthenticated();
+            hasRendered = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.Logout();
+        isAuthenticated = false;
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}
