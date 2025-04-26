@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: dev   # <-- Make sure this matches the environment where vars are saved
+    environment: Dev   # <-- Make sure this matches the environment where vars are saved
     permissions:
       contents: read
       packages: write
