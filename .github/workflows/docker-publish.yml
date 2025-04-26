@@ -12,11 +12,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: Dev   # <-- Make sure this matches the environment where vars are saved
+    environment: dev
     permissions:
       contents: read
       packages: write
       id-token: write
+
+    env:    # <-- Setting your variables cleanly inside job now
+      REGISTRY: registry-1.docker.io
+      IMAGE_NAME: bennyjai1984/bankingwebapp
 
     steps:
       - name: Checkout repository
@@ -35,15 +39,15 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          registry: ${{ vars.REGISTRY }}
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ vars.DOCKERHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ vars.REGISTRY }}/${{ vars.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
         id: build-and-push
