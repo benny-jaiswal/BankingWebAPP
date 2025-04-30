@@ -18,7 +18,7 @@ jobs:
       packages: write
       id-token: write
 
-    env:    # <-- Setting your variables cleanly inside job now
+    env:    # <-- Setting your variables cleanly inside job now dev default
       REGISTRY: registry-1.docker.io
       IMAGE_NAME: bennyjai1984/bankingwebapp
 
